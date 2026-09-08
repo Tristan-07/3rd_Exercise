@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - ICT Service Request Management System</title>
+  <meta name="description" content="Manage technical support requests for university ICT department.">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <!-- Navbar / Header -->
+    <header class="navbar">
+      <div class="brand">
+        <div class="brand-icon">💻</div>
+        <div>
+          <div class="brand-title">ICT SERVICE REQUEST</div>
+          <div class="brand-subtitle">University Technical Portal</div>
+        </div>
+      </div>
+
+      <div class="user-controls">
+        <div id="backend-status-badge"></div>
+        <div class="user-badge">
+          <div id="user-avatar-initial" class="user-avatar">U</div>
+          <span id="user-email-display">user@example.com</span>
+        </div>
+        <button class="btn btn-secondary btn-icon" onclick="openConfigModal()" title="Supabase Database Settings">
+          ⚙️ Settings
+        </button>
+        <button class="btn btn-danger" onclick="logoutUser()" title="Sign Out">
+          🚪 Logout
+        </button>
+      </div>
+    </header>
+
+    <!-- Dashboard Summary Cards (Section IV) -->
+    <section class="dashboard-grid">
+      <div class="stat-card card-total">
+        <div class="stat-header">
+          <span class="stat-title">Total Requests</span>
+          <div class="stat-icon-wrapper">📊</div>
+        </div>
+        <div id="stat-total-count" class="stat-value">0</div>
+      </div>
+
+      <div class="stat-card card-pending">
+        <div class="stat-header">
+          <span class="stat-title">Pending</span>
+          <div class="stat-icon-wrapper">⏳</div>
+        </div>
+        <div id="stat-pending-count" class="stat-value">0</div>
+      </div>
+
+      <div class="stat-card card-inprogress">
+        <div class="stat-header">
+          <span class="stat-title">In Progress</span>
+          <div class="stat-icon-wrapper">⚙️</div>
+        </div>
+        <div id="stat-inprogress-count" class="stat-value">0</div>
+      </div>
+
+      <div class="stat-card card-completed">
+        <div class="stat-header">
+          <span class="stat-title">Completed</span>
+          <div class="stat-icon-wrapper">✅</div>
+        </div>
+        <div id="stat-completed-count" class="stat-value">0</div>
+      </div>
+    </section>
+
+    <!-- Request Analytics Section (Intermediate Bonus Challenge - Section XXIV) -->
+    <section class="analytics-section">
+      <div class="analytics-header">
+        <div class="analytics-title">
+          <span>📈</span> REQUEST ANALYTICS
+        </div>
+        <span style="font-size: 0.75rem; color: var(--text-muted);">Real-time Database Breakdown</span>
+      </div>
+
+      <div class="analytics-grid">
+        <!-- By Category -->
+        <div>
+          <div class="analytics-block-title">By Category</div>
+          <div id="category-analytics-bars" class="analytics-bars">
+            <!-- Dynamic bars inserted via JS -->
+          </div>
+        </div>
+
+        <!-- By Priority -->
+        <div>
+          <div class="analytics-block-title">By Priority</div>
+          <div id="priority-analytics-bars" class="analytics-bars">
+            <!-- Dynamic bars inserted via JS -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Search & Filter Control Bar (Section VI) -->
+    <section class="control-bar">
+      <button class="btn btn-primary" onclick="openNewRequestModal()">
+        ➕ New Request
+      </button>
+
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="search-input" class="search-input" placeholder="Search by requester name or description...">
+      </div>
+
+      <div class="filter-group">
+        <div class="filter-item">
+          <label for="filter-status" class="filter-label">Status:</label>
+          <select id="filter-status" class="form-select">
+            <option value="All">All Statuses</option>
+            <option value="Pending">Pending</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Completed">Completed</option>
+          </select>
+        </div>
+
+        <div class="filter-item">
+          <label for="filter-priority" class="filter-label">Priority:</label>
+          <select id="filter-priority" class="form-select">
+            <option value="All">All Priorities</option>
+            <option value="High">High</option>
+            <option value="Medium">Medium</option>
+            <option value="Low">Low</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Service Requests Table (Section V) -->
+    <main class="table-card">
+      <div class="table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Requester & Dept</th>
+              <th>Category</th>
+              <th>Priority</th>
+              <th>Status</th>
+              <th>Description</th>
+              <th>Date Requested</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="service-requests-body">
+            <!-- Dynamic Table Rows populated via JS -->
+          </tbody>
+        </table>
+      </div>
+    </main>
+
+  </div>
+
+  <!-- Modal: Create / Edit Request -->
+  <div id="modal-request" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modal-request-title" class="modal-title">Submit New Service Request</h3>
+        <button class="close-btn" onclick="closeModal('modal-request')">✕</button>
+      </div>
+
+      <form id="request-form">
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="form-requester" class="form-label">Requester Name <span class="required-star">*</span></label>
+              <input type="text" id="form-requester" class="form-input" placeholder="e.g. Juan Dela Cruz" required>
+            </div>
+            <div class="form-group">
+              <label for="form-department" class="form-label">Department <span class="required-star">*</span></label>
+              <input type="text" id="form-department" class="form-input" placeholder="e.g. Registrar" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="form-category" class="form-label">Category <span class="required-star">*</span></label>
+              <select id="form-category" class="form-select" required>
+                <option value="" disabled selected>Select concern category</option>
+                <option value="Computer repair">Computer repair</option>
+                <option value="Software installation">Software installation</option>
+                <option value="Internet/network problem">Internet/network problem</option>
+                <option value="Printer problem">Printer problem</option>
+                <option value="Account/access concern">Account/access concern</option>
+                <option value="Other ICT-related concerns">Other ICT-related concerns</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="form-priority" class="form-label">Priority <span class="required-star">*</span></label>
+              <select id="form-priority" class="form-select" required>
+                <option value="Low">Low</option>
+                <option value="Medium" selected>Medium</option>
+                <option value="High">High</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="form-status-group" class="form-group" style="display: none;">
+            <label for="form-status" class="form-label">Status <span class="required-star">*</span></label>
+            <select id="form-status" class="form-select">
+              <option value="Pending">Pending</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Completed">Completed</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="form-description" class="form-label">Description of Problem <span class="required-star">*</span></label>
+            <textarea id="form-description" class="form-textarea" rows="4" placeholder="Provide detailed description of the technical concern..." required minlength="5"></textarea>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-request')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Request</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Confirm Delete (BR-08) -->
+  <div id="modal-delete" class="modal-backdrop">
+    <div class="modal-card" style="max-width: 440px;">
+      <div class="modal-header">
+        <h3 class="modal-title" style="color: var(--danger);">⚠️ Confirm Delete</h3>
+        <button class="close-btn" onclick="closeModal('modal-delete')">✕</button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to delete this technical service request?</p>
+        <p id="delete-target-info" style="font-weight: 700; color: var(--primary); margin-top: 0.5rem;"></p>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem;">This action cannot be undone.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('modal-delete')">Cancel</button>
+        <button type="button" id="btn-confirm-delete" class="btn btn-danger">Yes, Delete Record</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Supabase Project Credentials Config -->
+  <div id="modal-config" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">⚙️ Supabase Settings</h3>
+        <button class="close-btn" onclick="closeModal('modal-config')">✕</button>
+      </div>
+      <form id="config-form">
+        <div class="modal-body">
+          <p style="font-size: 0.85rem; color: var(--text-muted);">
+            Configure your active Supabase Project URL and Anon/Publishable API Key.
+          </p>
+          <div class="form-group">
+            <label class="form-label" for="config-url">Supabase URL</label>
+            <input type="url" id="config-url" class="form-input" placeholder="https://your-project.supabase.co">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="config-key">Supabase Publishable/Anon Key</label>
+            <input type="text" id="config-key" class="form-input" placeholder="your-publishable-key">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="setDemoMode(true)">Use LocalStorage Engine</button>
+          <button type="submit" class="btn btn-primary">Save & Reload</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/supabase.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
